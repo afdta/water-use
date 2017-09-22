@@ -17,10 +17,9 @@ function main(){
   //dir.add("dirAlias", "rackspace-slug/path/to/dir");
   var compat = degradation(document.getElementById("metro-interactive"));
 
-
   //browser degradation
   if(compat.browser()){
-    //run app...
+    console.log("running water...");
   }
 
 
