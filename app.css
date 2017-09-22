@@ -104,16 +104,6 @@ div.view-wrap.small{
   max-width:800px;
 }
 
-/*text to annotate each stacked bar as part of the out of work "funnel" logic -- who is out of work*/
-div.funnel-text-wrap{
-  max-width:610px;
-  width:80%;
-  margin:10px 0em 1em 0em;
-}
-
-div.funnel-text-wrap p{
-  line-height:1.8em;
-}
 
 p:first-child strong{
   font-size:1.5em;
