@@ -173,6 +173,16 @@ div.subway-tile.click-for-more-info .more-info-available{
   padding:0em 4% 0em 0em;
 }
 
+/*larg col / small col*/
+#metro-interactive .col-lg{
+	width:60%;
+	float:left;
+}
+#metro-interactive .col-sm{
+	width:30%;
+	float:left;
+}
+
 /*images are sized according to container they are in*/
 #metro-interactive img {
   width:100%;
@@ -203,6 +213,11 @@ div.subway-tile.click-for-more-info .more-info-available{
     padding:0em 0% 0em 0em;
   }  
 
+  #metro-interactive .col-lg, #metro-interactive .col-sm{
+  	float:none;
+  	width:auto;
+  	margin-left:auto;
+  }
 
 }
 
@@ -226,6 +241,12 @@ div.subway-tile.click-for-more-info .more-info-available{
   #metro-interactive .split50 > div:first-child{
     border-right:0px solid #aaaaaa;
     padding:0em 0% 0em 0em;
+  }  
+
+  #metro-interactive .col-lg, #metro-interactive .col-sm{
+  	float:none;
+  	width:auto;
+  	margin-left:auto;
   }    
 }
 
@@ -247,8 +268,18 @@ div.subway-tile.click-for-more-info .more-info-available{
   #metro-interactive .split50 > div:first-child{
     border-right:1px solid #aaaaaa;
     padding:0em 4% 0em 0em;
-  }  
+  } 
 
+	/*larg col / small col*/
+	#metro-interactive .col-lg{
+		width:65%;
+		float:left;
+	}
+	#metro-interactive .col-sm{
+		width:30%;
+		float:left;
+		margin-left:5%;
+	}
 
 }
 
@@ -276,5 +307,13 @@ div.subway-tile.click-for-more-info .more-info-available{
     padding:0em 4% 0em 0em;
   }  
 
-
+	/*larg col / small col*/
+	#metro-interactive .col-lg{
+		width:60%;
+		float:left;
+	}
+	#metro-interactive .col-sm{
+		width:30%;
+		float:left;
+	}
 }
