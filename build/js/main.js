@@ -36,6 +36,8 @@ function main(){
       metro_map(containers.metro_map, data);
       state_map(containers.state_map, data);
 
+      //console.log(d3.selectAll(".hoello").nodes());
+
     });
   }
 
