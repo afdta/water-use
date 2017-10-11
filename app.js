@@ -681,19 +681,17 @@ function get_dim(el){
 	return dim;
 }
 
-function tooltips(layer, tooltip_node, parent_node, annotation_group){
+function tooltips(layer, dom, annotation_group){
 
-	var parent = d3.select(parent_node);
-	var tip = d3.select(tooltip_node);
+	var tip = dom.tip;
+	var tip_inner = dom.tip_inner;
 
-	var tip_width = 260;
+	var parent_node = tip.node().parentNode;
+
+	var tip_width = dom.dim.width;
+	var tip_pad = dom.dim.pad;
 
 	var enabled = false;
-
-	//tooltip text formatting function
-	var text = function(d){
-		return JSON.stringify(d);
-	};
 
 	//to do: handle cases where tooltip goes above/below viewport
 
@@ -701,6 +699,8 @@ function tooltips(layer, tooltip_node, parent_node, annotation_group){
 
 	//hide on mousedown - useful on mobile
 	d3.select(parent_node).on("mousedown", hide);
+
+
 
 
 	//clone an svg feature attributes in the annotation_group layer 
@@ -753,23 +753,30 @@ function tooltips(layer, tooltip_node, parent_node, annotation_group){
 
 	//hide tooltips
 	function hide(){
-		tip.style("visibility","hidden").style("left", "-300px").style("top","100%");
+		tip.style("visibility","hidden").style("left", "-300px").style("top","0%");
+		dom.arrows.L.style("visibility","hidden");
+		dom.arrows.R.style("visibility","hidden");
 	}
 
 	//show tooltips using pos.left, pos.top
 	function show(pos){
-			if(tip_width + 15 + pos.left <= container_viewport.width){
-				var left = pos.left + 15;
+
+			dom.arrows.L.style("visibility","hidden");
+			dom.arrows.R.style("visibility","hidden");
+
+			if(tip_width + pos.left + tip_pad <= container_viewport.width){
+				var left = pos.left;
+				dom.arrows.L.style("visibility","visible");
 			}
-			else if(pos.left - 15 - tip_width >= 0){
-				var left= pos.left - 15 - tip_width;
+			else if(pos.left - tip_width - (2*tip_pad) >= 0){
+				var left= pos.left - tip_width - (2*tip_pad);
+				dom.arrows.R.style("visibility","visible");
 			}
 			else{
 				var left = 0;
 			}
 
-			var top = pos.top - 30;
-
+			var top = pos.top - 25;
 
 			//to do -- run these calcs in timeout at some point to ensure sizing is correct -- for some reason is very slow in callback
 			var box = tip.node().getBoundingClientRect();
@@ -778,11 +785,8 @@ function tooltips(layer, tooltip_node, parent_node, annotation_group){
 			var height = box.bottom - box.top;
 
 
-
-		tip.style("visibility","visible").style("left", left+"px").style("top", top+"px")
-		.style("width",tip_width+"px").style("min-height","100px").style("border","1px solid #aaaaaa")
-		.style("border-radius","0px").style("background-color","#ffffff")
-		.style("box-shadow", "4px 4px 10px 0px rgba(0,0,0,0.25)");	
+		tip.style("visibility","visible").style("opacity","1").style("left", left+"px").style("top", top+"px").style("width",(tip_width+(2*tip_pad))+"px");
+		//tip_inner.style("width",tip_width+"px")
 	}
 
 	//show tooltip, using mouse events to get pos.x/pos.y
@@ -805,25 +809,93 @@ function tooltips(layer, tooltip_node, parent_node, annotation_group){
 		//console.log(layer.lookup(d.properties.geo_id));
 	}
 
-	//programmatic tooltips -- see description of T.text below for text_accessor/data_accessor descriptions
-	T.highlight = function(geo_id, text_accessor, data_accessor){
+
+	//register tooltips that apply to geo layer on an arbitrary selection of points or polys, 
+	//all annotations will be drawn in annotation_group (e.g. highlights, etc)
+	//this function is typically not used by the user, except when applying tooltips to free_layers
+	T.apply = function(sel, build){
+		
+		sel.on("mouseenter", function(d,i){
+			annotate_feature(this); //
+			build.call(tip_inner.node(), d);
+			show_mouse(d,i);
+		});
+
+		//mousemove is a subset of mouseenter
+		sel.on("mousemove", function(d,i){
+			//no need to annotate (done on enter)
+			build.call(tip_inner.node(), d);
+			show_mouse(d,i);
+		});		
+
+		sel.on("mouseleave", function(d,i){
+			tiptimer = setTimeout(hide, 300);
+			annotate_feature(null);
+		});
+
+		//return a function that will clear annotations from anno_group
+		var clearIt = function(){
+			annotate_feature(null);
+		};
+
+		return clearIt;
+	};
+
+
+	T.off = function(){
+		enabled = false;
+		annotate_feature(null); //remove any annotation
+		hide();
+		return T;
+	};
+
+	T.hide = function(){
+		annotate_feature(null);
+		hide();
+		return T;
+	};
+
+	//tooltip text formatting function
+	//text function takes data obs, tooltip as this object
+	var text = function(d){return JSON.stringify(d);};
+	//data accessor takes data bound to point or poly and returns bound data
+	var accessor = function(d){return layer.lookup(d.properties.geo_id);};
+	//combine text and accessor -- call with build.call
+	var build = function(d){
+		//this == tooltip node
+		var that = this;
+		var data = accessor(d);
+		text.call(that, data);		
+	};
+
+	//apply tooltips to all geo features in a layer
+	//text_accessor is a function that takes a data observation and has access to tooltip node as this object
+	//optional data_accessor takes data bound to path/circle and returns data observation -- in geo layers, setting this is likely not necessary. but useful for free_layers
+	T.text = T.on = function(text_accessor, data_accessor){
+		enabled = true;
+
+		if(typeof text_accessor === "function"){text = text_accessor;}
+		if(typeof data_accessor === "function"){accessor = data_accessor;} 
+
+		var geodata = layer.geo();
+		if(geodata != null){
+			var i = -1;
+			while(++i < geodata.length){
+				if(geodata[i].hasOwnProperty("selection")){
+					T.apply(geodata[i].selection, build);
+				}
+			}
+		}
+
+		return T;
+	};
+
+	//programmatic tooltips -- relies on text/data accessors passed to T.text/T.on above
+	T.highlight = function(geo_id){
 		clearTimeout(tiptimer);
 
 		var geodata = layer.geo();
 		var svg_feature = null;
-
-		var accessor = typeof data_accessor === "function" ? data_accessor : function(d){return layer.lookup(d.properties.geo_id);};
-
-		//combine data accessor with text formatting / arbitrary tooltip filler
-
-		//data bound to path passed to build function
-		//text_accessor is called with data observation and tooltip node as this object
-		var build_function = function(d){
-			//this == tooltip node
-			var that = this;
-			var data = accessor(d);
-			text.call(that, data);
-		};
 		
 		try{
 			//geodata could be null
@@ -834,6 +906,7 @@ function tooltips(layer, tooltip_node, parent_node, annotation_group){
 				}
 				return n;
 			});
+			//flatten to a single layer of nodes
 			var allnodes = [].concat.apply([], nodes);
 			
 			var i=-1;
@@ -863,92 +936,9 @@ function tooltips(layer, tooltip_node, parent_node, annotation_group){
 			show({left:x, top:y});
 			annotate_feature(svg_feature);
 
-			build_function.call(tip.node(), svg_feature.__data__);
+			build.call(tip_inner.node(), svg_feature.__data__);
 		}
-	};
-
-
-
-	//register tooltips that apply to geo layer on an arbitrary selection of points or polys, 
-	//all annotations will be drawn in annotation_group (e.g. highlights, etc)
-	//optionally specifying a data accessor for each element
-	//to do: document api -- e.g. default accessor returns null
-	T.apply = function(sel, build){
-		
-		sel.on("mouseenter", function(d,i){
-			annotate_feature(this); //
-			build.call(tip.node(), d);
-			show_mouse(d,i);
-		});
-
-		//mousemove is a subset of mouseenter
-		sel.on("mousemove", function(d,i){
-			//no need to annotate (done on enter)
-			build.call(tip.node(), d);
-			show_mouse(d,i);
-		});		
-
-		sel.on("mouseleave", function(d,i){
-			tiptimer = setTimeout(hide, 300);
-			annotate_feature(null);
-		});
-
-		//return a function that will clear annotations from anno_group
-		var clearIt = function(){
-			annotate_feature(null);
-		};
-
-		return clearIt;
-	};
-
-
-	T.off = function(){
-		enabled = false;
-		annotate_feature(null); //remove any annotation
-		hide();
-		return T;
-	};
-
-	T.hide = function(){
-		annotate_feature(null);
-		hide();
-	};
-
-	//apply tooltips to all geo features in a layer
-	//text_accessor is a function that takes a data observation and has access to tooltip node as this object
-	//optional data_accessor takes data bound to path/circle and returns data observation -- in geo layers, setting this is likely not necessary. but useful for free_layers
-	T.text = T.on = function(text_accessor, data_accessor){
-		enabled = true;
-
-		if(arguments.length > 0){
-			text = text_accessor;
-		}
-
-		var accessor = typeof data_accessor === "function" ? data_accessor : function(d){return layer.lookup(d.properties.geo_id);};
-
-		//combine data accessor with text formatting / arbitrary tooltip filler
-
-		//data bound to path passed to build function
-		//text_accessor is called with data observation and tooltip node as this object
-		var build_function = function(d){
-			//this == tooltip node
-			var that = this;
-			var data = accessor(d);
-			text.call(that, data);
-		};
-
-		var geodata = layer.geo();
-		if(geodata != null){
-			var i = -1;
-			while(++i < geodata.length){
-				if(geodata[i].hasOwnProperty("selection")){
-					T.apply(geodata[i].selection, build_function);
-				}
-			}
-		}
-
-		return T;
-	};
+	};	
 
 	T.enabled = function(){
 		return enabled;
@@ -1149,7 +1139,7 @@ function layer(){
 			delete aes_mappings[attr];
 			return L;
 		}
-		else if(attr in {r:1, stroke:1, fill:1, "stroke-dasharray":1, "stroke-width":1, cx:1, cy:1, filter:1}){
+		else if(attr in {r:1, stroke:1, fill:1, "stroke-dasharray":1, "stroke-width":1, "fill-opacity":1, opacity:1, cx:1, cy:1, filter:1}){
 			aes_mappings[attr] = {map:attr_mapper};
 			return L;
 		}
@@ -1460,19 +1450,18 @@ function layer(){
 
 	//tooltips
 	//to do: streamline the tooltips api... 
-	var ttips = tooltips(L, this.dom.tooltip, this.dom.parent, anno_group.node());
-	L.tooltips = function(fn, data_accessor){
-		if(arguments.length == 0){
-			return ttips;
-		}
-		else if(!fn){
+	var ttips = tooltips(L, this.dom.tooltip, anno_group.node());
+	
+	//allow the user to pass a tooltip build function using data and a data accessor that takes point/poly data and returns data to build fn
+	L.tooltips = function(fn, dfn){
+		if(arguments.length && !fn){
 			ttips.off();
 		}
-		else{
-			ttips.on(fn);
+		else if(typeof fn === "function"){
+			ttips.on(fn, dfn);
 		}
 
-		return L;
+		return ttips;
 	};
 
 	//draw the layer
@@ -1546,6 +1535,23 @@ function layer(){
 					}
 					//console.log("Applying custom attr: "+a);
 				}
+			}
+
+			//biggest bubbles on bottom
+			try{
+				if(point_or_poly === "point"){
+					var radius_lookup = {};
+					selection.each(function(d,i){
+						radius_lookup[d.properties.geo_id] = d3.select(this).attr("r");
+					}).sort(function(a,b){
+						var arad = radius_lookup[a.properties.geo_id];
+						var brad = radius_lookup[b.properties.geo_id];
+						return brad - arad;
+					});
+				}
+			}
+			catch(e){
+				console.log(e);
 			}
 
 			//apply any styles always, for now
@@ -1778,6 +1784,8 @@ function geo_api_sync(){
 
 //to do: figure out how to reserve the proper amount of space prior to draw so that auto layout doesn't have any issues -- if
 //to do: major work on making layout more robust, responsive, etc
+//to do: make ticks available for linear scales
+//to do: better selection for radii examples // better alignment of bubbles in legend
 //legend is added after set_dim() called, then it won't be accurate. SO, could reserve some space, or run draw in callback
 
 function legend(container){
@@ -1789,8 +1797,7 @@ function legend(container){
 	var values = [];
 	var labels = [];
 
-	var outer_wrap = L.wrap = d3.select(container);
-
+	var outer_wrap = d3.select(container);
 	var inner_wrap = outer_wrap.append("div").classed("c-fix",true);
 
 	var default_radius = 8;
@@ -1799,6 +1806,20 @@ function legend(container){
 	var bubble_values = null;
 	var swatch_values = null;
 
+	L.wrap = function(container, keep_previous){
+		if(arguments.length==0){
+			return outer_wrap;
+		}
+		else{
+			if(!keep_previous){
+				outer_wrap.remove();
+			}
+			outer_wrap = d3.select(container);
+			inner_wrap = outer_wrap.append("div").classed("c-fix",true);
+		}
+		return L;
+	};
+
 	//
 	L.bubble = function(values, formatter, title, left){
 		bubble_values = values;
@@ -1806,10 +1827,14 @@ function legend(container){
 		var padding = 8;
 
 		var format = typeof formatter == "function" ? formatter : function(v){return v};
+		var L = arguments.length > 3 && !!left;
 
 		inner_wrap.selectAll("div.bubble-legend").remove();
-		var wrap = inner_wrap.append("div").classed("bubble-legend", true).style("float", arguments.length > 3 && !!left ? "left" : "right").style("margin","0em 1em 0em 2em");
-		var svg = wrap.append("svg");
+		var wrap = inner_wrap.append("div").classed("bubble-legend", true)
+							 .style("float", L ? "left" : "right")
+							 .style("margin","0em " + (L ? "2em" : "0em") + " 0em " + (L ? "0em" : "2em"));
+
+		var svg = wrap.append("svg").style("overflow","visible");
 		var g = svg.append("g").attr("transform","translate(0,25)");
 
 		var maxr = d3.max(values, function(d){return d.r});
@@ -1849,14 +1874,21 @@ function legend(container){
 							.style("font-size","13px");
 
 
-			var title_text = svg.append("text").text(title).attr("x", "50%").attr("text-anchor","middle").attr("y",12);
+			if(title !== "" && title !== null){
+				var title_text = svg.append("text").text(title).attr("x", "50%").attr("text-anchor","middle").attr("y",12);
+			}
+			else{
+				var title_text = null;
+				g.attr("transform", "translate(0,10)");
+			}
 
 			setTimeout(function(){
 				var box = g.node().getBoundingClientRect();
-				var box1 = title_text.node().getBoundingClientRect();
-				var w = box.right - box.left;
+				var box1 = title_text !== null ? title_text.node().getBoundingClientRect() : {left:10, right:0, top:0, bottom:0};
+				var w = box.right - box.left + (2*padding);
 				var w1 = box1.right - box1.left;
-				svg.attr("width", Math.max(w1,w));
+				var h = box.bottom-box.top+box1.bottom-box1.top+10;
+				svg.attr("width", Math.max(w1,w)).attr("height", h);
 			},0);
 
 		}
@@ -1870,9 +1902,13 @@ function legend(container){
 		var padding = 12;
 
 		var format = typeof formatter == "function" ? formatter : function(v){return v};
+		var L = arguments.length > 3 && !!left;
 
 		inner_wrap.selectAll("div.swatch-legend").remove();
-		var wrap = inner_wrap.append("div").classed("c-fix swatch-legend", true).style("float", arguments.length > 3 && !!left ? "left" : "right").style("margin","0em 1em 0em 2em");
+		var wrap = inner_wrap.append("div").classed("c-fix swatch-legend", true)
+							 .style("float", L ? "left" : "right")
+							 .style("margin","0em " + (L ? "2em" : "0em") + " 0em " + (L ? "0em" : "2em"));
+
 		var svg = wrap.append("svg");
 		var g = svg.append("g").attr("transform","translate(0,25)");
 
@@ -1920,7 +1956,8 @@ function legend(container){
 					var box1 = title_text.node().getBoundingClientRect();
 					var w = box.right - box.left;
 					var w1 = box1.right - box1.left;
-					svg.attr("width", Math.max(w1,w));
+					var h = box.bottom-box.top+box1.bottom-box1.top+10;
+					svg.attr("width", Math.max(w1,w)).attr("height",h);
 				},0);
 
 			},0);		
@@ -1982,9 +2019,11 @@ function mapd(root_container){
 
 	//dom structure
 	//dom_root (passed as arg to mapd)
-	//...menu_wrap (hold menu, may float alongside or above map)
-	//...container_wrap (holds map) -- eligible space for map -- width remains at 100% of parent
-	//......outer_wrap (parent of svg, canvas, tooltip) -- width of this element is set
+	//...top_wrap (hold menu/legend, may float alongside or above map)
+	//......menu_wrap 
+	//......legend_wrap
+	//...container_wrap (holds map) -- eligible space for map -- width remains at 100% of parent -- width of this element is queried
+	//......outer_wrap (parent of svg, canvas, tooltip) -- width of this element is set programmatically
 	//.........map_canvas (canvas background)
 	//.........map_svg (main svg) -- all drawing is done on a root <g> under map_svg
 	//.........tooltip_wrap -- tooltip
@@ -1996,7 +2035,7 @@ function mapd(root_container){
 	var title_wrap = dom_root.append("div").classed("c-fix",true);
 	var top_wrap = dom_root.append("div").classed("c-fix",true);
 		var menu_wrap = top_wrap.append("div").classed("c-fix",true);
-		var legend_wrap = top_wrap.append("div").classed("c-fix",true);
+		var legend_wrap = top_wrap.append("div").classed("c-fix map-legend",true);
 
 	//container is given a width of 100%, a non-zero min-height, and 0 padding to aid in accurate resizing
 	//you should never set the dimensions of this element
@@ -2020,17 +2059,54 @@ function mapd(root_container){
 	var map_canvas = outer_wrap.append("canvas").style("width","100%").style("height","100%").style("position","absolute").style("z-index","1");
 	var map_svg = outer_wrap.append("svg").attr("width","100%").attr("height","100%").style("position","relative").style("z-index","2");
 
+	//TOOLTIP
+	var tip_pad = 20;
+	var tip_width = 250;
 	var tooltip_wrap = outer_wrap.append("div")
-								 .style("width","100px")
-								 .style("min-height","100px")
 								 .style("position","absolute")
-								 .style("top","-200px")
-								 .style("left","-100px")
 								 .style("visibility","hidden")
-								 .style("padding","0.5em 1em")
+								 .style("opacity","0")
 								 .classed("makesans",true)
 								 .style("pointer-events","none")
-								 .style("z-index","20");
+								 .style("z-index","20")
+								 .style("min-height","5em");	
+
+	//content for tooltip
+	var tooltip_inner = tooltip_wrap.append("div")
+									.style("margin","0px "+tip_pad+"px")
+									.style("background-color","#ffffff")
+									.style("padding","10px 15px")
+									.style("position","relative")
+									.style("z-index",10)
+									.style("border","1px solid #333333")
+									.style("border-radius","5px")
+							   		.style("min-height","50px")
+									.style("box-shadow", "4px 4px 10px 0px rgba(0,0,0,0.25)");
+
+	//arrow indicators pointing to geo
+	var arrowL = tooltip_wrap.append("svg").attr("width",(tip_pad+2)+"px").attr("height","100%")
+					   .style("position","absolute").style("left","0px").style("top","15px").style("z-index",20);
+					   
+		arrowL.append("path").attr("d", "M"+tip_pad+",0 l-15,10 l15,10 z").attr("fill","#ffffff")
+					   .attr("stroke","#333333").style("pointer-events","none");
+		arrowL.append("path").attr("d", "M"+(tip_pad+2)+",0 l-15,10 l15,10 z").attr("fill","#ffffff")
+					   .attr("stroke","none").style("pointer-events","none");			
+
+	var arrowR = tooltip_wrap.append("svg").attr("width",(tip_pad+2)+"px").attr("height","100%")
+					   .style("position","absolute").style("right","0px").style("top","15px").style("z-index",20);
+		arrowR.append("path").attr("d", "M2,0 l15,10 l-15,10 z").attr("fill","#ffffff")
+					   .attr("stroke","#333333").style("pointer-events","none");
+		arrowR.append("path").attr("d", "M0,0 l15,10 l-15,10 z").attr("fill","#ffffff")
+					   .attr("stroke","none").style("pointer-events","none");
+
+	var tooltip_dom = { 
+					    tip:tooltip_wrap, 
+					    tip_inner:tooltip_inner, 
+					    arrows:{L:arrowL, R:arrowR}, 
+					    dim:{width:tip_width, pad:tip_pad}
+					  };
+	//END TOOLTIP	
+
 
 	var zoom_button = outer_wrap.append("div").style("position","absolute").style("top","3rem").style("left","80%")
 												.style("width","70px").style("height","50px")
@@ -2077,9 +2153,9 @@ function mapd(root_container){
 	//layer should only be called as a method of map so the proper context can be set
 	map.layer = function(){
 		var dom_context = {
-							root: root_container,
-							parent: outer_wrap.node(),
-							tooltip: tooltip_wrap.node()
+							root: dom_root,
+							parent: outer_wrap,
+							tooltip: tooltip_dom
 						  };
 
 		var l = layer.call({map:map, dom:dom_context});
@@ -2494,7 +2570,9 @@ function mapd(root_container){
 		tooltip_wrap.style("top","-200px")
 					.style("left","-100px")
 					.style("visibility","hidden")
-					.html("");		
+					;
+
+		tooltip_inner.html("");		
 
 		return map;
 	};
@@ -2550,73 +2628,90 @@ function mapd(root_container){
 	return map;
 }
 
-function state_map(container, data){
-	var wrap = d3.select(container).classed("c-fix",true);
-	var map_wrap = wrap.append("div").classed("col-lg",true);
-	
-	var bar_wrap = wrap.append("div").classed("col-sm",true)
-						.style("overflow","auto")
-						.style("border","1px solid #aaaaaa")
-						.style("border-width","1px 0px")
-						.style("margin-top","4em");
-	var bar_svg = bar_wrap.append("svg").attr("width","100%").attr("height",51*15 + 20);
-	
-	var map = mapd(map_wrap.node()).zoomable(false).responsive(false);
-	var state_layer = map.layer().geo(map.geo("state")).attr("stroke","#999999");
+//v1.0 developed for congressional district poverty, gig economy, and gci summit
 
-	var states = data.state.total.concat(data.state.nonmetro, data.state.metro).filter(function(d){return d.fips != "US"});
-
-	var category = "thermoelectric";
-	var geo = "total";
-
-	var draw = function(data){
-		var domain = d3.extent(states, function(d){return category=="pc" ? d.tot/d.pop : d[category]});
-
-		var scale = state_layer.data(data, "fips").aes.fill("value").quantile(['#eff3ff','#bdd7e7','#6baed6','#3182bd','#08519c']); //.domain(domain);
-		map.draw();
-
-		var bars = bar_svg.selectAll("rect").data(data, function(d){return d.fips});
-		bars.exit().remove();
-		bars.enter().append("rect").merge(bars).attr("x","10%").attr("height","14px").transition()
-						.attr("y", function(d,i){return i*15 + 10})
-						.attr("width", function(d,i){return ((d.value/domain[1])*80)+"%" })
-						.attr("fill",function(d){
-							return scale.map(d);
-						})
-						;
-		size_bars();
-	};
-
-	var get_draw = function(){
-		var D = data.state[geo].map(function(d){
-			return {fips:d.fips, name:d.state, value: category=="pc" ? d.tot/d.pop : d[category]}
-		}).filter(function(d){return d.fips != "US"});
-
-		D.sort(function(a,b){return b.value - a.value});
-
-		draw(D);
-	};	
-
-	function size_bars(){
-		try{
-			var h = map.get_dim().height;
-			if(h < 200){h = 200;}
-			if(h > 800){h = 600;}
-		}
-		catch(e){
-			var h = 350;
-		}
-
-		bar_wrap.style("height", (h*0.85)+"px").style("margin-top","3em");		
+var format = {};
+format.rank = function(r){
+	try{
+	    if(r == null){
+	        throw "badInput";
+	    }
+	    else{
+	        
+	        var c = r + "";
+	        var f = +(c.substring(c.length-1)); //take last letter and coerce to an integer
+	         
+	        var e = ["th","st","nd","rd","th","th","th","th","th","th"];
+	 
+	        var m = (+r)%100; 
+	        var r_ = (m>10 && m<20) ? c + "th" : (c + e[f]); //exceptions: X11th, X12th, X13th, X14th
+	    }
+	}
+	catch(e){
+	    var r_ = r+"";
 	}
 
+	return r_; 
+};
 
-	window.addEventListener("resize", get_draw);
+//percent change
+format.pct0 = d3.format("+,.0%");
+format.pct1 = d3.format("+,.1%");
 
-	//get_draw("tot");
-	//get_draw("irrigation");
-	get_draw("thermoelectric");
-}
+//percent change
+format.ch0 = d3.format("+,.0f");
+format.ch1 = d3.format("+,.1f");
+
+//shares
+format.sh0 = d3.format(",.0%");
+format.sh1 = d3.format(",.1%");
+
+//numeric
+format.num0 = d3.format(",.0f");
+format.num1 = d3.format(",.1f");
+format.num2 = d3.format(",.2f");
+format.num3 = d3.format(",.3f");
+
+//USD
+format.doll0 = function(v){return "$" + format.num0(v)};
+format.doll1 = function(v){return "$" + format.num1(v)};
+format.doll2 = function(v){return "$" + format.num2(v)};
+
+format.dolle30 = function(v){return "$" + format.num0(v*1000)};
+
+//id
+format.id = function(v){return v};
+
+//possessive
+format.possessive = function(v){
+	var s = v+"";
+	var last = s.slice(-1).toLowerCase();
+	return last=="s" ? s+"'" : s+"'s";
+};
+
+//wrapper that handles missings/nulls
+format.fn = function(v, fmt){
+	if(format.hasOwnProperty(fmt)){
+		var fn = format[fmt];
+	}
+	else{
+		var fn = format.id;
+	}
+	return v==null ? "N/A" : fn(v);
+};
+
+//similar to fn above, but returns a decorated function instead of a value
+format.fn0 = function(fmt){
+	if(format.hasOwnProperty(fmt)){
+		var fn = format[fmt];
+	}
+	else{
+		var fn = format.id;
+	}
+	return function(v){
+		return v==null ? "N/A" : fn(v);
+	}
+};
 
 //v1.0 developed for congressional district poverty and gig economy
 
@@ -2650,6 +2745,329 @@ function nameshort(longname, appendStateNames){
 		
 	}
 
+}
+
+function select_menu(container){
+	var sel = {};
+	var options = null;
+	var option_data = [{value:null, text:"Option 1", disabled:false}];
+	var callback = null;
+
+	var wrap = d3.select(container);
+	var prompt = wrap.append("p").style("margin","0em 0em 7px 7px")
+								.style("font-style","italic")
+								.style("line-height","1em")
+								.style("font-size","0.85em")
+								.style("text-transform","uppercase");
+
+	var select = wrap.append("select").style("border","1px solid #dddddd").style("font-family","Arial, Helvetica, sans").style("padding","4px 7px");
+	var select_node = select.node();
+
+	var apply_callback = function(){
+		if(callback !== null){
+			select.on("change", function(){
+				var val = this.value;
+				try{
+					var d = option_data[this.selectedIndex];
+
+					if(d.value !== val){
+						throw "ERROR";
+					}
+				}
+				catch(e){
+					var d = option_data[0];
+					select_node.value = d.value;
+				}
+
+				callback.call(val, d);
+			});
+		}
+	};
+
+	sel.prompt = function(text){
+		prompt.text(text);
+		return sel;
+	};
+
+	sel.callback = function(c){
+		callback = c;
+		
+		apply_callback();
+		return sel;
+	};
+
+	//optdata should be array of {value:code/id/etc, text:label, disabled:true/false/missing}
+	sel.options = function(optdata){
+		option_data = optdata;
+		var opts = select.selectAll("option").data(optdata);
+		opts.exit().remove();
+		options = opts.enter().append("option").merge(opts);
+
+		options.attr("value", function(d,i){return d.value})
+			   .text(function(d,i){return d.text})
+			   .attr("disabled", function(d,i){
+			   		return d.hasOwnProperty("disabled") && !!d.disabled ? "yes" : null;
+			   	});
+
+		apply_callback();
+		return sel;
+	};
+
+	return sel;
+}
+
+//v1.0 developed for congressional district poverty
+
+//viewport dimensions
+function dimensions(el, maxwidth, maxheight){
+	if(arguments.length > 0){
+		var element = el;
+	}
+	else{
+		var element = document.documentElement;
+	}
+
+	var floor = 50;
+	var err = false;
+
+	try{
+		var box = element.getBoundingClientRect();
+		var w = Math.floor(box.right - box.left);
+		var h = Math.floor(box.bottom - box.top);
+		if(w < floor || h < floor){throw "badWidth"}
+	}
+	catch(e){
+		var box = {};
+		var w = floor;
+		var h = floor;
+		err = true;
+	}
+
+	if(!!maxwidth && w > maxwidth){w = maxwidth;}
+	if(!!maxheight && h > maxheight){h = maxheight;}
+
+	var dim = {width:w, height:h, error:err, box:box};
+
+	return dim;
+}
+
+var category_names = {
+	tot: "Total withdrawals (millions of gallons per day, Mgal/d)",
+	pc: "Total withdrawals per capita (gallons per person, per day)",
+	public_supply: "Withdrawals for public supply (Mgal/d)",
+	thermoelectric: "Withdrawals for thermoelectric power (Mgal/d)",
+	irrigation: "Withdrawals for irrigation (Mgal/d)",
+	ind_self_supply: "Withdrawals for industrial uses (Mgal/d, self-supplied)",
+	dom_self_supply: "Withdrawals for domestic self-supply (Mgal/d)",
+	livestock: "Withdrawals for livestock (Mgal/d)",
+	mining: "Withdrawals for mining (Mgal/d)",
+	aquaculture: "Withdrawals for aquaculture (Mgal/d)"
+};
+
+var cat_options = ["tot", "pc", "public_supply", "thermoelectric", "irrigation", 
+				   "ind_self_supply", "dom_self_supply", "livestock", "mining", "aquaculture"];
+
+var category_options = cat_options.map(function(d,i){
+	var o = {};
+	o.value = d;
+	o.text = category_names[d];
+	o.disabled = false;
+	return o;
+});
+
+function state_map(container, data){
+	var wrap = d3.select(container).classed("c-fix",true)
+								   .style("max-width","1600px")
+								   .style("margin","6em auto 8em auto");
+
+	var menu = wrap.append("div").classed("c-fix",true);
+
+	var title = wrap.append("p").style("font-size","1.5em").style("margin","0rem 0.25rem 0.25rem 1.5rem");
+	var subtitle = wrap.append("p").style("padding","0.25rem 1.5rem 0.25rem 1.5rem")
+								.style("margin-bottom","0.75rem")
+								.style("border-bottom","1px solid #aaaaaa");
+
+	var col_wrap = wrap.append("div").classed("c-fix",true);
+	var col0 = col_wrap.append("div").classed("col-lg",true);
+	
+	var map_wrap = col0.append("div");	
+	var bar_wrap = col_wrap.append("div").classed("col-sm",true)
+						.style("overflow","auto")
+						.style("border","1px solid #aaaaaa")
+						.style("border-width","1px 0px")
+						.style("margin-top","4em");
+	var bar_svg = bar_wrap.append("svg").attr("width","100%").attr("height",51*30 + 20);
+
+	
+	var map = mapd(map_wrap.node()).zoomable(false).responsive(false);
+	var state_layer = map.layer().geo(map.geo("state")).attr("stroke","#999999");
+
+	var states = data.state.total.concat(data.state.nonmetro, data.state.metro).filter(function(d){return d.fips != "US"});
+
+	var category = "tot";
+	var geo = "total";
+
+	//render map to div below map
+	var legend_wrap = wrap.append("div").style("margin","0.5rem 1em 0.25rem 1.5rem").classed("map-legend",true);
+	map.legend.wrap(legend_wrap.node()); 
+	var redraw_legend = true;
+	function draw_legend(fill, domain){
+		if(redraw_legend){
+			var precision = "0";
+			
+			/*try{
+				precision = domain[0] < 2 ? "1" : "0"
+			}
+			catch(e){
+				precision = "0";
+			}*/
+
+			var fmt = category==="pc" ? function(v){return format.num0(v*1000)} : format["num"+precision];
+
+			map.legend.swatch(fill.ticks(), function(v){
+				return fmt(v[0]) + "–" + fmt(v[1]);
+			}, (category=="pc" ? "Thousands of gallons per person, per day" : "Millions of gallons per day"), "left");
+
+			redraw_legend = false; //dots never resize -- so only need to redraw legend when indicator changes
+		}
+	}
+
+	var tooltip = function(obs){
+		var tip = d3.select(this); //.text(JSON.stringify(obs));
+
+		tip.html('<p style="margin:0em 0em 0.5em 0em"><strong>'+obs.name+'</strong></p> <p style="margin:0em;">'+(obs.valuef==null ? "N/A" : obs.valuef)+'</p>');
+
+	};	
+
+	var draw = function(data){
+		//domain based on all state obs (metro/nonmetro/tot)
+		var domain = d3.extent(states, function(d){return category=="pc" ? d.tot/d.pop : d[category]});
+
+		state_layer.data(data, "fips");
+		var scale = state_layer.aes.fill("value").quantile(['#c6dbef','#9ecae1','#6baed6','#3182bd','#08519c']); //.quantile(['#eff3ff','#bdd7e7','#6baed6','#3182bd','#08519c']); //.domain(domain);
+		map.draw();
+
+		title.text(category_names[category]);
+		subtitle.text(geo=="total" ? "50 states and the District of Columbia" : 
+									 (geo=="metro" ? "Metropolitan portions of the 50 states and the District of Columbia" : 
+									 				 "Non-metropolitan portions of the 50 states and the District of Columbia"));		
+
+		//custom data accessor for tooltip function to insert state name into data observation
+		var dat_accessor = function(d){
+			var obs = state_layer.lookup(d.properties.geo_id);
+			if(obs!==null){
+				//some states have 0 non-metro territory (NJ, RI, DE, DC)
+				obs.name = d.properties.geo_name;
+			}
+			else{
+				obs = {name: d.properties.geo_name};
+			}
+
+			return obs;
+		};
+
+		state_layer.tooltips(tooltip, dat_accessor).width(185);
+
+		var bg_u = bar_svg.selectAll("g").data(data, function(d){return d.fips});
+			bg_u.exit().remove();
+		var bg_e = bg_u.enter().append("g");
+			bg_e.append("rect").classed("bg-rect",true).attr("fill","transparent").attr("stroke","none").attr("width","100%").attr("height","25");
+			bg_e.append("rect").classed("bar-rect",true).attr("x","2.5%").attr("height","7px").attr("stroke","#aaaaaa").style("shape-rendering","crispEdges");
+			bg_e.append("text").attr("x","2.5%").attr("dy",20).style("font-size","13px").style("cursor","default");
+
+		var bg = bg_e.merge(bg_u);
+
+		bg.select("rect.bar-rect").transition().duration(1200)
+						.attr("y", function(d,i){return i*30 + 10})
+						.attr("width", function(d,i){return ((d.value/domain[1])*95)+"%" })
+						.attr("fill",function(d){
+							return scale.map(d);
+						});
+
+		bg.select("rect.bg-rect").transition().duration(1200).attr("y", function(d,i){return i*30 + 10});
+
+		bg.select("text").text(function(d, i){return (i+1) + ". " +  d.usps+ " (" + d.valuef + ")"})
+						 .transition().duration(1200).attr("y", function(d,i){return i*30 + 10});
+
+		var timer;
+		bg.style("pointer-events","all")
+			.on("mouseenter", function(d){
+				clearTimeout(timer);
+				var that = this;
+				setTimeout(function(){
+					d3.select(that).select("rect.bg-rect").attr("fill","#dddddd");
+				},0);
+				state_layer.tooltips().highlight(d.fips);
+			})
+			.on("mouseleave", function(){
+				bg.selectAll("rect.bg-rect").attr("fill","transparent");
+				timer = setTimeout(function(){
+					state_layer.tooltips().hide();
+				}, 300);
+			});
+
+
+		size_bars();
+
+		draw_legend(scale, domain);
+	};
+
+	var get_draw = function(){
+		var D = data.state[geo].map(function(d){
+			var r = {fips:d.fips, usps:d.state, value: category=="pc" ? d.tot/d.pop : d[category]};
+			r.valuef = category=="pc" ? format.num0(r.value*1000) + " gal./day" : format.num0(r.value) + " Mgal/d";
+			return r;
+		}).filter(function(d){return d.fips != "US"});
+
+		D.sort(function(a,b){return b.value - a.value});
+
+		draw(D);
+	};	
+
+
+	function size_bars(){
+		try{
+			var winwidth = dimensions().width;
+			if(winwidth <= 950){
+				var h = 200;
+			}
+			else{
+				var h = map.get_dim().height*0.9;
+			}
+		}
+		catch(e){
+			var h = 350;
+		}
+
+		bar_wrap.style("height", h+"px").style("margin-top","3em");		
+	}	
+
+
+	window.addEventListener("resize", get_draw);
+
+	var geo_menu = menu.append("div").style("float","right").style("margin-left","1.5rem");
+	var cat_menu = menu.append("div").style("float","right").style("margin-right","0rem");
+
+	select_menu(cat_menu.node()).prompt("Select an indicator to map")
+		.options(category_options)
+		.callback(function(d){
+			redraw_legend = true;
+			category = this;
+			get_draw();
+		});
+
+	select_menu(geo_menu.node()).prompt("State portion to focus on").options([
+		{value:"total", text:"Total (entire state)", disabled:false},
+		{value:"metro", text:"Metropolitan portion of state", disabled:false},
+		{value:"nonmetro", text:"Non-metropolitan portion of state", disabled:false}
+	]).callback(function(d){
+		geo = this;
+		get_draw();
+	});	
+
+
+	//kick off
+	get_draw();
 }
 
 function metro_select(){
@@ -2810,40 +3228,79 @@ function metro_select(){
 }
 
 function metro_map(container, data){
-	var wrap = d3.select(container).classed("c-fix",true);
-	var map_wrap = wrap.append("div").classed("col-lg",true);
+	var wrap = d3.select(container).classed("c-fix",true)
+								   .style("max-width","1600px")
+								   .style("margin","8em auto 6em auto");
+
+	var menu = wrap.append("div").classed("c-fix",true);
+
+	var title = wrap.append("p").style("font-size","1.5em").style("margin","0rem 0.25rem 0.25rem 1.5rem");
+	var subtitle = wrap.append("p").style("padding","0.25rem 1.5rem 0.25rem 1.5rem")
+								.style("margin-bottom","0.75rem")
+								.style("border-bottom","1px solid #aaaaaa");
+
+	var col_wrap = wrap.append("div").classed("c-fix",true);
+	var col0 = col_wrap.append("div").classed("col-lg",true);
 	
-	var bar_wrap = wrap.append("div").classed("col-sm",true)
+	var map_wrap = col0.append("div");	
+	var bar_wrap = col_wrap.append("div").classed("col-sm",true)
 						.style("overflow","auto")
 						.style("border","1px solid #aaaaaa")
 						.style("border-width","1px 0px")
 						.style("margin-top","4em");
 	var bar_svg = bar_wrap.append("svg").attr("width","100%").attr("height",100*30 + 20);
 
+
 	var lookup = metro_select().lookup;
 	
 	var map = mapd(map_wrap.node()).zoomable(false).responsive(false);
 	var state_layer = map.layer().geo(map.geo("state")).attr("stroke","#999999").attr("fill","none");
-	var metro_layer = map.layer().geo(map.geo("metro").filter(function(d){return d.t100==1})).attr("stroke","#999999");
+	var metro_layer = map.layer().geo(map.geo("metro").filter(function(d){return d.t100==1})).attr("stroke","#999999").attr("fill-opacity","0.9");
 
 	var metros = data.metro;
 
 	var category = "tot";
 
+
+	//render map to div below map
+	var legend_wrap = wrap.append("div").style("margin","0.5rem 1em 0.25rem 1.5rem").classed("map-legend",true);
+	map.legend.wrap(legend_wrap.node()); 
+	var redraw_legend = true;
+	function draw_legend(fill, rad, domain){
+		if(redraw_legend){
+			var precision = "0";
+			try{
+				precision = domain[0] < 2 ? "1" : "0";
+			}
+			catch(e){
+				precision = "0";
+			}
+
+			var fmt = category==="pc" ? function(v){return format.num0(v*1000)} : format["num"+precision];
+
+			map.legend.swatch(fill.ticks(), function(v){
+				return fmt(v[0]) + "–" + fmt(v[1]);
+			}, (category=="pc" ? "Thousands of gallons per person, per day" : "Millions of gallons per day"), "left");
+			map.legend.bubble(rad.ticks(), fmt, null, "left");
+			redraw_legend = false; //dots never resize -- so only need to redraw legend when indicator changes
+		}
+	}
+
 	var tooltip = function(obs){
-
 		var tip = d3.select(this); //.text(JSON.stringify(obs));
-		tip.text(lookup(obs.cbsa).name);
-
+		tip.html('<p style="margin:0em 0em 0.5em 0em"><strong>'+obs.name+'</strong></p> <p style="margin:0em;">'+obs.valuef+'</p>');
 	};
 
 	var draw = function(data){
 		var domain = d3.extent(metros, function(d){return category=="pc" ? d.tot/d.pop : d[category]});
 
 		metro_layer.data(data, "cbsa");
-		var scale = metro_layer.aes.fill("value").quantile(['#eff3ff','#bdd7e7','#6baed6','#3182bd','#08519c']); //.domain(domain);
+		var scale = metro_layer.aes.fill("value").quantile(['#c6dbef','#9ecae1','#6baed6','#3182bd','#08519c']); //.quantile(['#eff3ff','#bdd7e7','#6baed6','#3182bd','#08519c']); //.domain(domain);
 		var r = metro_layer.aes.r("value");
 		map.draw();
+
+		title.text(category_names[category]);
+		subtitle.text("100 largest metro areas");
 
 		metro_layer.tooltips(tooltip);
 
@@ -2851,43 +3308,53 @@ function metro_map(container, data){
 			bg_u.exit().remove();
 		var bg_e = bg_u.enter().append("g");
 			bg_e.append("rect").classed("bg-rect",true).attr("fill","transparent").attr("stroke","none").attr("width","100%").attr("height","30");
-			bg_e.append("rect").classed("bar-rect",true).attr("x","2.5%").attr("height","7px");
+			bg_e.append("rect").classed("bar-rect",true).attr("x","2.5%").attr("height","7px").attr("stroke","#aaaaaa").style("shape-rendering","crispEdges");
 			bg_e.append("text").attr("x","2.5%").attr("dy",20).style("font-size","13px").style("cursor","default");
 
 		var bg = bg_e.merge(bg_u);
 
-		bg.select("rect.bar-rect").transition()
+		bg.select("rect.bar-rect").transition().duration(1200)
 						.attr("y", function(d,i){return i*30 + 10})
 						.attr("width", function(d,i){return ((d.value/domain[1])*95)+"%" })
 						.attr("fill",function(d){
 							return scale.map(d);
 						});
 
-		bg.select("rect.bg-rect").transition().attr("y", function(d,i){return i*30 + 10});
+		bg.select("rect.bg-rect").transition().duration(1200).attr("y", function(d,i){return i*30 + 10});
 
-		bg.select("text").text(function(d){return lookup(d.cbsa).nameshort + " (" + d.value + ")"})
-						 .transition().attr("y", function(d,i){return i*30 + 10});
+		bg.select("text").text(function(d,i){return (i+1) + ". " + lookup(d.cbsa).nameshort + " (" + d.valuef + ")"})
+						 .transition().duration(1200).attr("y", function(d,i){return i*30 + 10});
 
 		var timer;
 		bg.style("pointer-events","all")
 			.on("mouseenter", function(d){
 				clearTimeout(timer);
+				var that = this;
+				setTimeout(function(){
+					d3.select(that).select("rect.bg-rect").attr("fill","#dddddd");
+				},0);
 				metro_layer.tooltips().highlight(d.cbsa, tooltip);
 			})
 			.on("mouseleave", function(){
+				bg.selectAll("rect.bg-rect").attr("fill","transparent");
 				timer = setTimeout(function(){
 					metro_layer.tooltips().hide();
 				}, 300);
-			//console.log(lookup(d.cbsa).name);
 			});
 
 
 		size_bars();
+	
+
+		draw_legend(scale, r, domain);
+
 	};
 
 	var get_draw = function(){
 		var D = data.metro.map(function(d){
-			return {cbsa:d.cbsa, name:"name", value: category=="pc" ? d.tot/d.pop : d[category]}
+			var r = {cbsa:d.cbsa, name: lookup(d.cbsa).name, value: category=="pc" ? d.tot/d.pop : d[category]};
+			r.valuef = category=="pc" ? format.num0(r.value*1000) + " gal./day" : format.num0(r.value) + " Mgal/d";
+			return r;
 		});
 
 		D.sort(function(a,b){return b.value - a.value});
@@ -2897,10 +3364,13 @@ function metro_map(container, data){
 
 	function size_bars(){
 		try{
-			var h = map.get_dim().height;
-			var w = map.get_dim().width;
-			if(h < 200 || w < 650){h = 200;}
-			else{h = h*0.78;}
+			var winwidth = dimensions().width;
+			if(winwidth <= 950){
+				var h = 200;
+			}
+			else{
+				var h = map.get_dim().height*0.9;
+			}
 		}
 		catch(e){
 			var h = 350;
@@ -2912,9 +3382,18 @@ function metro_map(container, data){
 
 	window.addEventListener("resize", get_draw);
 
-	//get_draw("tot");
-	//get_draw("irrigation");
-	get_draw("thermoelectric");
+	var cat_menu = menu.append("div").style("float","right").style("margin-left","1.5rem");
+	
+	select_menu(cat_menu.node()).prompt("Select an indicator to map")
+		.options(category_options)
+		.callback(function(d){
+			redraw_legend = true;
+			category = this;
+			get_draw();
+		});
+
+	//kick off
+	get_draw();
 }
 
 //main function
@@ -2923,7 +3402,7 @@ function main(){
 
   //local
   dir.local("./");
-  dir.add("data", "data");
+  dir.add("assets", "assets");
   //dir.add("dirAlias", "path/to/dir");
 
   var containers = {};
@@ -2938,7 +3417,7 @@ function main(){
 
   //browser degradation
   if(compat.browser()){
-    d3.json(dir.url("data", "water.json"), function(error, data){
+    d3.json(dir.url("assets", "water.json"), function(error, data){
       if(error){
         compat.alert(containers.metro_map);
         compat.alert(containers.state_map);

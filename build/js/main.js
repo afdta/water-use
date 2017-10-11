@@ -12,7 +12,7 @@ function main(){
 
   //local
   dir.local("./");
-  dir.add("data", "data");
+  dir.add("assets", "assets");
   //dir.add("dirAlias", "path/to/dir");
 
   var containers = {};
@@ -27,7 +27,7 @@ function main(){
 
   //browser degradation
   if(compat.browser()){
-    d3.json(dir.url("data", "water.json"), function(error, data){
+    d3.json(dir.url("assets", "water.json"), function(error, data){
       if(error){
         compat.alert(containers.metro_map);
         compat.alert(containers.state_map);

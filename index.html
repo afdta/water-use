@@ -9,21 +9,127 @@
   <script src="app.js" type="text/javascript"></script>
 </head>
 
-<body>
-<div id="metro-interactive">
+<body style="margin:0px;">
 
-	<div class="c-fix">
-		<div class="subway-tile"><p>Subway tile</p><p>Lorem ipsum...</p></div>
-		<div class="subway-tile"><p>Subway tile</p><p>Lorem ipsum...</p></div>
-		<div class="subway-tile"><p>Subway tile</p><p>Lorem ipsum...</p></div>
-		<div class="subway-tile"><p>Subway tile</p><p>Lorem ipsum...</p></div>
-		<div class="subway-tile"><p>Subway tile</p><p>Lorem ipsum...</p></div>
+<div style="min-height:200px; background-color:#000000;padding:2em; margin-bottom:5em;">
+	<h1 style="color:#ffffff">Less water, more risk</h1>
+	<h3 style="color:#ffffff">Exploring national and local water use patterns in the U.S.</h3>
+	<p style="color:#ffffff;margin-top:3em">Joe Kane</p>
+</div>
+
+<p style="color:#ff0000;font-weight:bold;text-transform:uppercase;text-align:center;">Draft version: Please do not cite or distribute</p>
+
+<div id="metro-interactive" style="min-width:600px;">
+
+
+<div class="col-center reading">
+	<p><span class="first-letter">A</span>midst a rising number of extreme weather events, service fluctuations, and other investment concerns, America’s water infrastructure is at a crossroads. Frequently overlooked and taken for granted, water is not just vital for life, but also provides an economic foundation for millions of businesses, farms, manufacturers, and households that depend on a reliable supply each day in the United States. This foundational role puts considerable pressure on water utilities, which must maintain safe, efficient infrastructure and ensure that water is affordable for end users. Yet, many areas across the United States do not consistently understand how much water they use or how their water demands connect to industrial change, population growth, and environmental stability. </p>
+
+	<p>This report provides a comprehensive comparison of metropolitan and nonmetropolitan water use patterns to help fill this information gap. It not only highlights the scale and complexity of how users in different areas depend on water, but it also points to difficulties these users – and providers – face managing this scarce resource in an economically efficient and equitable way.</p>
+</div>
+
+<div id="state-map"></div>
+
+<p class="section-title">Background and approach</p>
+<div class="col-center reading">
+	<p>Despite seeing declining levels of water use in recent years, the U.S. still depends on nearly 355 billion gallons each day, an enormous total speaking to the breadth of uses nationally. From power plants to farms to households, water use remains high in many cases, but it is also falling across the board as new conservation measures and technologies have been introduced. Utilities must confront several competing needs as a result: fixing aging, brittle infrastructure systems in service of a productive economy while generating less predictable revenues from lower levels of water use. Rising water bills, in turn, are helping to cover these costs and are often hitting lower-income households and other vulnerable users the hardest. </p>
+
+	<p>To provide reliable, cost-effective service, utilities – alongside local planners, economic development officials, and other leaders – need more detailed metrics and a better understanding of how regional water needs are shifting. </p>
+
+	<p>By examining how individuals and industries in metro areas and nonmetro areas use water each day – from ordinary household uses to large-scale energy and agricultural uses – this report uncovers how these uses place specific demands on infrastructure in particular places. Through several key metrics – including total water use and per capita water use – it provides a new starting point for metro and nonmetro leaders to consider while balancing water efficiency and equity considerations.</p>
+</div>
+
+<p class="section-title">Major findings</p>
+<div class="col-center reading">
+	<p>The report analyzes water use data from the U.S. Geological Survey over a period of more than 50 years to find that:</p>
+</div>
+	
+<div class="col-center reading main-finding-wrap">
+	<p class="main-finding finding-1">The need for more efficient water use depends on metro areas, where more than 221 billion gallons of water use takes place each day, accounting for 63 percent of the U.S. total.</p>
+</div>
+
+<div class="col-center reading">
+	<p>In short, metro areas are central to managing the country’s water resources since they contain many of its biggest water users. As the centers of U.S. population and economic output, most water use occurs in metro areas, including 80 percent of industrial use and 83 percent of public supply use. Just 25 of these metros, including New York, Chicago, and Washington, use 90 billion gallons of water each day, a quarter of the U.S. total. Nonetheless, users in these metros are much more efficient in their total water use (840 gallons per capita each day) compared to nonmetros (2,810 gallons per capita each day).</p>
+
+	<div class="image-wrap">
+		<p class="reading"><strong>Metropolitan versus non-metropolitan shares of U.S. water withdrawals by category of use, 2010</strong><br /></p>
+		<img src="./assets/share_by_cat_metro_nonmetro.svg"></img>
 	</div>
 
-	<div id="metro-map"></div>
-	<div id="state-map"></div>
+</div>
 
+
+<div id="metro-map"></div>
+
+<div class="col-center reading main-finding-wrap">
+	<p class="main-finding finding-2">Metro areas are already leading the charge to more efficient water use – driving almost 90 percent of U.S. declines over the past three decades – but this also introduces greater economic risk.</p>
+</div>
+
+<div class="col-center reading">
+	<p>From 1985 to 2010, water use in metro areas fell by 39 billion gallons each day, including a reduction of 30 billion gallons in the 100 largest metro areas alone. Nonmetro areas, on the other hand, only reduced their water use by about 3 percent. Most of these declines occurred from 2005 to 2010, speaking to the importance of new technologies and other steps toward greater conservation. However, while nearly all major categories of water use reduced aggregate use, public supply did not. Increasing public demand in many metro areas is challenging utilities to provide reliable, affordable water to a growing customer base. </p>
+
+	<div class="image-wrap" style="margin-bottom:4em;">
+		<p class="reading"><strong>Metropolitan versus non-metropolitan percent change in water withdrawals by category of use, 1985 to 2010</strong><br /></p>
+		<img src="./assets/change_by_cat_metro_nonmetro.svg"></img>
+	</div>
+</div>
+
+<div class="col-center reading main-finding-wrap">
+	<p class="main-finding finding-3">Several factors – including higher levels of energy and agricultural production, shares of developed land, and population densities – have a significant effect on water use within metro areas and nonmetro areas, revealing certain policy levers that might be available to drive additional water efficiencies. </p>
+</div>
+
+<div class="col-center reading">
+	<p>Understanding why users in some places – including particular cities and neighborhoods – depend on more water than others has attracted considerable attention from academics and practitioners. In line with previous studies, the report finds that certain types of industrial activity – namely energy and agricultural production – have a positive effect on total water use, in addition to higher temperatures and lower levels of precipitation. Crucially, however, counties with a greater concentration of population and more compact development tend to use less water. For example, an increase in a county’s population density by one is associated with 13,500 fewer gallons of total water use each day. As a result, a smarter, compact mix of land uses is likely to require less water – and potentially result in greater efficiencies – than more sprawling development patterns.</p>
+
+	<div class="image-wrap">
+		<p class="reading"><strong>Key factors affecting water use at the county level</strong><br /><em>As the diagram below illustrates, for every one additional kWh of power generated, total water use goes up 16 gallons per day in the average county, holding other factors constant. Meanwhile, an extra inch of annual precipitation reduces water use by 2.5 million gallons per day.</em></p>
+		<img src="https://www.brookings.edu/wp-content/uploads/2017/10/variables_affecting_water_use.jpg"></img>
+	</div>
 
 </div>
+
+<p class="section-title">Implications and recommendations</p>
+<div class="col-center reading">
+	<p>Amidst increasingly unpredictable demands, traditional ways of managing scarce water resources are no longer sufficient to achieve long-term, dependable service and fiscal certainty. These trends reaffirm that there are no one-size-fits-all solutions to the country’s water infrastructure challenges. However, by having a more consistent barometer to compare different places and weigh different needs, federal, state, and local leaders can begin to quantify the risks at hand more clearly and develop a more coordinated approach to the country’s water infrastructure challenges.</p>
+
+	<p class="rec-header">Local strategies: Implementing new plans, financial tools, and technological Innovations</p>
+
+	<p>Leaders in metro and nonmetro areas—including utilities and other large water users—are well-positioned to tackle their water infrastructure challenges head-on. Since they are often directly involved in overseeing water use, they can more closely track resource limitations, operational demands, and other hurdles to water management. Furthermore, they can engage in peer-to-peer learning and share best practices. The bigger challenge, though, is uniting action among different local actors and creating more holistic management strategies, which not only respond to short-term maintenance needs, but also emphasize long-term fixes and economic priorities.i.</p>
+
+	<div class="recommendation reading">
+		<p><strong>As a starting point, developing more comprehensive water plans can encourage greater collaboration and strategic action.</strong> Integrated water resources management, which involves coordinated water planning in light of different land use, economic, and environmental considerations, is helping cities and entire regions bring groups together in support of more efficient and equitable outcomes.i Integrated water planning efforts, of course, remain difficult to execute in reality among several different agencies and are not a catch-all solution for the water infrastructure issues that metro areas face nationally.ii However, these efforts, including “One Water” planning, are helping utilities, industries, and other local leaders work more closely together to define their water priorities—from diversifying water supplies to forging new partnerships to supporting more affordable water access.iii</p>
+	</div>
+
+	<div class="recommendation reading">
+		<p><strong>In much the same way, beyond planning, metro leaders must also confront a complicated and long-standing barrier to efficient and equitable water use: how to pay for infrastructure maintenance and upgrades.</strong> Utilities, in particular, are facing a crunch to provide reliable, affordable water, often for a growing customer base. The creation of more robust water asset management plans and the development of new revenue streams are two of the major types of efforts underway, which both hold promise for improved regional water management and addressing the cost of service. For example, utilities tend to rely on volumetric charges to generate revenue, but they are also turning more toward fixed fees—such as connection charges—to provide revenue stability regardless of the levels of water used.i In addition, several localities are creating (or strengthening) customer assistance programs, which offer useful models to consider in alleviating the cost burden on lower-income households.ii</p>
+	</div>
+
+	<div class="recommendation reading">
+		<p><strong>In addition to exploring new plans and financial tools, metro leaders should emphasize technological innovation to drive additional efficiencies.</strong> Reducing water withdrawals for thermoelectric power and irrigation are especially important in this way, but utilities and other local leaders should seek to incorporate more efficient technologies across all categories of water use. The key is stimulating the widespread investment in and use of these new technologies. By doing so, regions may spend more money today, but they can save more money tomorrow through reduced infrastructure costs (and lower customer bills). For instance, limiting the amount of energy and waste that water utilities themselves produce is key, which several regions are already addressing through better leak detection, water reuse, and other new treatment processes.</p>
+	</div>
+</div>
+
+<div class="col-center reading">
+	<p class="rec-header">State and federal strategies: Building financial capacity, boosting collaboration, and providing policy direction on innovation</p>
+
+	<p>Metro and nonmetro areas must contend with a highly fragmented set of water challenges and cannot address these issues alone; state and federal leaders should help utilities, industries, and households across the country achieve greater financial and technical capacity to unlock new solutions. At the same time, establishing a clearer policy framework to guide these efforts is essential, including steps toward greater technological innovation.</p>
+
+	<div class="recommendation reading">
+		<p><strong>First, as with all types of infrastructure nationally, these state and federal efforts must address sticky questions on how to pay for future improvements.</strong> Although the water funding gap is significant and more overall investment would help utilities, in particular, operate with greater certainty, this does not mean that state and federal leaders should swing for the fences.i Instead, state and federal leaders should pursue a combination of short-term and long-term strategies, based on a reasonable expectation to get certain projects done.ii For example, at the federal level, an infusion of new funding for SRFs would provide a stronger channel for additional state and local investment,iii but offering greater financial flexibility via a strengthened Water Infrastructure Finance and Innovation Act (WIFIA) program would also offer a clearer outlet to pursue a variety of different projects.iv</p>
+	</div>
+
+	<div class="recommendation reading">
+		<p><strong>Alongside discussions on water finance, state and federal leaders should also develop more comprehensive plans and collaborations in support of regional infrastructure upgrades.</strong> Many states have long adopted such an approach—including the development of multistate collaborations focused on water management across political boundaries—and should continue to foster stronger partnerships. Federally, on the other hand, cross-agency collaborations and planning efforts remain a work in progress and must continue to pick up momentum. Nascent initiatives, such as the Urban Waters Federal Partnership, have helped increase coordination among different agencies to accelerate infrastructure improvements in economically distressed regions nationwide and offer a useful model to consider.i</p>
+	</div>
+
+	<div class="recommendation reading">
+		<p><strong>While considering these new approaches, state and federal leaders must also recognize that improving regional water management involves a constantly moving target; as population and climate concerns continue to intensify, water needs will fluctuate widely and require an eye toward greater technological innovation.</strong> In light of federal uncertainty in this space following the Paris Climate Agreement withdrawal by the Trump administration, states are in an especially strategic position to encourage innovations across metro and nonmetro areas. Following the precedent set in the clean energy sector, for instance, states should adjust inconsistent regulations, enact new performance standards, and consider other public benefit charges—via state-led innovation offices—to support more widespread technological innovation and adoption.i</p>
+	</div>
+
+</div>
+	
+</div>
 </body>
+
+<p>Format footnotes in Wordpress</p>
 </html>
