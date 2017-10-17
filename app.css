@@ -73,6 +73,18 @@
   user-select:none;
 }
 
+#metro-interactive .notes-box{
+  margin:1rem 0rem;
+}
+
+#metro-interactive .notes-box p{
+  font-size:0.85em;
+  color:#555555;
+  margin:0.5rem 0rem 0.5rem 1.5rem;
+  line-height: normal;
+  font-style:italic;
+}
+
 #metro-interactive div.reading > p, #metro-interactive p.reading{
   margin:0em 0em 2rem 0em;
   line-height: 1.75em;
