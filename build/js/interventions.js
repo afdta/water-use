@@ -147,7 +147,6 @@ export default function interventions(){
 						.style("margin","1rem 0em 1.75rem 0em")
 						.style("font-weight",function(d,i){return i==0 ? "bold" : "normal"})
 						.style("font-size",function(d,i){return i==0 ? "1.5em" : null})
-						//.style("font-size", function(d,i){return i==0} ? "1.5em" : "1em")
 						;
 
 		if(footnotes[id].length > 0){
@@ -272,11 +271,6 @@ export default function interventions(){
 												.attr("stroke-linecap","round")
 												;	
 
-				//zoom_in_g.append("path").attr("stroke-width","4")
-				//			.attr("d", "m23.282 1070.1 7.3299 7.3299m-6.0819-15.665c-0.000012 4.979-4.0363 9.0152-9.0152 9.0152-4.979 0-9.0152-4.0362-9.0152-9.0152 0.0000119-4.979 4.0363-9.0152 9.0152-9.0152 4.979 0 9.0152 4.0362 9.0152 9.0152z");
-				//zoom_in_g.append("path").attr("stroke-width","2")
-				//			.attr("d", "m10.856 1061.7h9.0873m-4.5437-4.5436v9.0873");
-
 				zoom_in_g.append("path").attr("d","m42.5 1055a17.5 17.5 0 0 1 -17.5 17.5 17.5 17.5 0 0 1 -17.5 -17.5 17.5 17.5 0 0 1 17.5 -17.5 17.5 17.5 0 0 1 17.5 17.5z").attr("fill","#0d73d6");
 				zoom_in_g.append("path").attr("d","m19 1054.5 6.1902 6 5.8098-6")
 										.attr("stroke","#ffffff").attr("stroke-linecap","square").attr("fill","none").attr("stroke-width","5")
@@ -332,23 +326,14 @@ export default function interventions(){
 							.style("margin","0em 0.175em 0.35em 0.175em")
 							.style("cursor",function(d){
 								return true;
-								//return turn_on.hasOwnProperty(d) ? "pointer" : "auto";
 							})
 							.style("background-color", function(d){
 								return "orange";
-								//if(turn_on.hasOwnProperty(d)){
-								//	return text_color;
-								//}
-								//else{
-								//	return "#dddddd";
-								//}
 							})
 							;
 
 		dots.on("mousedown", function(d){
-			//if(turn_on.hasOwnProperty(d)){
-				show(d.id);
-			//};
+			show(d.id);
 		});
 
 		dots.append("p").text(function(d){return d})

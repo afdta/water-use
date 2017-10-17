@@ -43,13 +43,6 @@ export default function state_map(container, data){
 	function draw_legend(fill, domain){
 		if(redraw_legend){
 			var precision = "0";
-			
-			/*try{
-				precision = domain[0] < 2 ? "1" : "0"
-			}
-			catch(e){
-				precision = "0";
-			}*/
 
 			var fmt = category==="pc" ? function(v){return format.num0(v*1000)} : format["num"+precision];
 
@@ -62,7 +55,7 @@ export default function state_map(container, data){
 	}
 
 	var tooltip = function(obs){
-		var tip = d3.select(this); //.text(JSON.stringify(obs));
+		var tip = d3.select(this); 
 
 		tip.html('<p style="margin:0em 0em 0.5em 0em"><strong>'+obs.name+'</strong></p> <p style="margin:0em;">'+(obs.valuef==null ? "N/A" : obs.valuef)+'</p>');
 

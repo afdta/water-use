@@ -65,7 +65,7 @@ export default function metro_map(container, data){
 	}
 
 	var tooltip = function(obs){
-		var tip = d3.select(this); //.text(JSON.stringify(obs));
+		var tip = d3.select(this); 
 		tip.html('<p style="margin:0em 0em 0.5em 0em"><strong>'+obs.name+'</strong></p> <p style="margin:0em;">'+obs.valuef+'</p>');
 	}
 
