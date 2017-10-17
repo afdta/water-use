@@ -77,9 +77,9 @@ export default function state_map(container, data){
 		map.draw();
 
 		title.text(cn[category]);
-		subtitle.text(geo=="total" ? "50 states and the District of Columbia" : 
-									 (geo=="metro" ? "Metropolitan portions of the 50 states and the District of Columbia" : 
-									 				 "Non-metropolitan portions of the 50 states and the District of Columbia"));		
+		subtitle.text(geo=="total" ? "50 states" : 
+									 (geo=="metro" ? "Metropolitan portions of the 50 states" : 
+									 				 "Non-metropolitan portions of the 50 states"));		
 
 		//custom data accessor for tooltip function to insert state name into data observation
 		var dat_accessor = function(d){
@@ -146,7 +146,7 @@ export default function state_map(container, data){
 			var r = {fips:d.fips, usps:d.state, value: category=="pc" ? d.tot/d.pop : d[category]}
 			r.valuef = category=="pc" ? format.num0(r.value*1000) + " gal./day" : format.num0(r.value) + " Mgal/d";
 			return r;
-		}).filter(function(d){return d.fips != "US"});
+		}).filter(function(d){return d.fips != "US" && d.fips != "11"});
 
 		D.sort(function(a,b){return b.value - a.value});
 
