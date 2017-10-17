@@ -4,6 +4,7 @@ import degradation from "../../../js-modules/degradation.js";
 
 import state_map from "./state_map.js";
 import metro_map from "./metro_map.js";
+import interventions from "./interventions.js";
 
 
 //main function
@@ -32,11 +33,14 @@ function main(){
         compat.alert(containers.metro_map);
         compat.alert(containers.state_map);
       }
-
+console.log(data);
       metro_map(containers.metro_map, data);
       state_map(containers.state_map, data);
 
-      //console.log(d3.selectAll(".hoello").nodes());
+      var I = interventions();
+
+      I.grid(document.getElementById("local-strategies"), "local");
+      I.grid(document.getElementById("state-and-federal-strategies"))
 
     });
   }
