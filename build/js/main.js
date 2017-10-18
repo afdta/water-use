@@ -12,8 +12,8 @@ function main(){
 
 
   //local
-  //dir.local("./");
-  //dir.add("assets", "assets");
+  dir.local("./");
+  dir.add("assets", "assets");
 
   var containers = {};
   containers.metro_map = document.getElementById("metro-map");
@@ -21,7 +21,7 @@ function main(){
 
 
   //production data
-  dir.add("assets", "water-use/assets");
+  //dir.add("assets", "water-use/assets");
 
   var compat = degradation(document.getElementById("metro-interactive"));
 
