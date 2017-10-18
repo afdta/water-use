@@ -42,6 +42,12 @@ function main(){
       I.grid(document.getElementById("local-strategies"), "local");
       I.grid(document.getElementById("state-and-federal-strategies"))
 
+      d3.select("#water-change-graphic").append("img")
+          .attr("src", dir.url("assets", "change_by_cat_metro_nonmetro.svg"));
+
+      d3.select("#water-category-graphic").append("img")
+          .attr("src", dir.url("assets", "share_by_cat_metro_nonmetro.svg"));
+
     });
   }
 
