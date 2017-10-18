@@ -3889,9 +3889,8 @@ function main(){
 
 
   //local
-  dir.local("./");
-  dir.add("assets", "assets");
-  //dir.add("dirAlias", "path/to/dir");
+  //dir.local("./");
+  //dir.add("assets", "assets");
 
   var containers = {};
   containers.metro_map = document.getElementById("metro-map");
@@ -3899,8 +3898,8 @@ function main(){
 
 
   //production data
-  //dir.add("data", "metro-water/data");
-  //dir.add("dirAlias", "rackspace-slug/path/to/dir");
+  dir.add("assets", "water-use/assets");
+
   var compat = degradation(document.getElementById("metro-interactive"));
 
   //browser degradation
