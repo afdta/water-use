@@ -106,6 +106,7 @@ function degradation(root){
 //to do; handling missing values ok?
 //to do: look into the ticks methods for legends -- useful or should the api be pruned?
 //to do: create more unit tests for scales
+//to do:fix ticks for radii -- needs to be built based on absolute values
 
 //color palettes
 //credit: these palettes includes color specifications and designs developed by Cynthia Brewer (http://colorbrewer.org/).
@@ -475,7 +476,7 @@ function aesthetics(data){
 		function set_scale(){
 			aes.map = function(record){
 				var v = record != null ? record[variable] : null;
-				return v==null ? missingR : scale(v); 
+				return v==null ? missingR : scale(Math.abs(v)); 
 			};
 		}
 
@@ -502,6 +503,8 @@ function aesthetics(data){
 
 			return aes;
 		};
+
+		aes.domain = function(){return scale.domain()};
 
 		aes.ticks = function(){
 			return d3.range(0,9,4).map(function(i){
@@ -2855,6 +2858,7 @@ function dimensions(el, maxwidth, maxheight){
 
 var category_names = {
 	tot: "Total withdrawals (millions of gallons per day, Mgal/d)",
+	ch0510: "Percent change in total withdrawals, 2005 to 2010",
 	pc: "Total withdrawals per capita (gallons per person, per day)",
 	public_supply: "Withdrawals for public supply (Mgal/d)",
 	thermoelectric: "Withdrawals for thermoelectric power (Mgal/d)",
@@ -2866,7 +2870,7 @@ var category_names = {
 	aquaculture: "Withdrawals for aquaculture (Mgal/d)"
 };
 
-var cat_options = ["tot", "pc", "public_supply", "thermoelectric", "irrigation", 
+var cat_options = ["tot", "ch0510", "pc", "public_supply", "thermoelectric", "irrigation", 
 				   "ind_self_supply", "dom_self_supply", "livestock", "mining", "aquaculture"];
 
 var category_options = cat_options.map(function(d,i){
@@ -2898,13 +2902,17 @@ function state_map(container, data){
 						.style("border","1px solid #aaaaaa")
 						.style("border-width","1px 0px")
 						.style("margin-top","4em");
-	var bar_svg = bar_wrap.append("svg").attr("width","100%").attr("height",51*30 + 20);
-
+	
+	var bar_svg_ = bar_wrap.append("svg").attr("width","100%").attr("height",51*30 + 20);
+	var yaxis = bar_svg_.append("line").attr("x1","2.5%").attr("x2","2.5%")
+								       .attr("y1","0%").attr("y2","100%")
+								       .attr("stroke","#aaaaaa").attr("stroke-dasharray","2,2");
+	var bar_svg = bar_svg_.append("g");
 	
 	var map = mapd(map_wrap.node()).zoomable(false).responsive(false);
-	var state_layer = map.layer().geo(map.geo("state")).attr("stroke","#999999");
+	var state_layer = map.layer().geo(map.geo("state")).attr("stroke","#ffffff");
 
-	var states = data.state.total.concat(data.state.nonmetro, data.state.metro).filter(function(d){return d.fips != "US"});
+	var states = data.state.total.concat(data.state.nonmetro, data.state.metro).filter(function(d){return d.fips != "US" && d.fips !="11"});
 
 	var category = "tot";
 	var geo = "total";
@@ -2917,15 +2925,33 @@ function state_map(container, data){
 		if(redraw_legend){
 			var precision = "0";
 
-			var fmt = category==="pc" ? function(v){return format.num0(v*1000)} : format["num"+precision];
+			var fmt;
+			var title;
+
+			if(category=="pc"){
+				fmt = function(v){return format.num0(v*1000)};
+				title = "Gallons per person, per day";
+			}
+			else if(category=="ch0510"){
+				fmt = format.pct1;
+				title = "Percent change, 2005 to 2010";
+			}
+			else{
+				fmt = format["num"+precision];
+				title = "Millions of gallons per day";
+			}
 
 			map.legend.swatch(fill.ticks(), function(v){
-				return fmt(v[0]) + "–" + fmt(v[1]);
-			}, (category=="pc" ? "Thousands of gallons per person, per day" : "Millions of gallons per day"), "left");
+				return fmt(v[0]) + " to " + fmt(v[1]);
+			}, title, "left");
 
 			redraw_legend = false; //dots never resize -- so only need to redraw legend when indicator changes
 		}
 	}
+
+	var notes_wrap = wrap.append("div").classed("notes-box",true);
+	notes_wrap.append("p").text("Source: Brookings analysis of U.S. Geological Survey data.");
+	notes_wrap.append("p").text("Note: Data are based on 2010 estimates.");
 
 	var tooltip = function(obs){
 		var tip = d3.select(this); 
@@ -2937,9 +2963,29 @@ function state_map(container, data){
 	var draw = function(data){
 		//domain based on all state obs (metro/nonmetro/tot)
 		var domain = d3.extent(states, function(d){return category=="pc" ? d.tot/d.pop : d[category]});
+		if(domain[0] > 0){
+			domain[0]=0;
+		}
+		var xscale = d3.scaleLinear().domain(domain).range([2.5,97.5]);
+		var midpoint = xscale(0);
+		var width = function(d){
+			var x = xscale(d.value);
+			return x >= midpoint ? (x-midpoint)+"%" : (midpoint-x)+"%";
+		};
+		var xpos = function(d){
+			var x = xscale(d.value);
+			return x >= midpoint ? midpoint+"%" : x+"%";
+		};
 
 		state_layer.data(data, "fips");
-		var scale = state_layer.aes.fill("value").quantile(['#c6dbef','#9ecae1','#6baed6','#3182bd','#08519c']); //.quantile(['#eff3ff','#bdd7e7','#6baed6','#3182bd','#08519c']); //.domain(domain);
+
+		if(category != "ch0510"){
+			var scale = state_layer.aes.fill("value").quantile(['#c6dbef','#9ecae1','#6baed6','#3182bd','#08519c']); //.quantile(['#eff3ff','#bdd7e7','#6baed6','#3182bd','#08519c']); //.domain(domain);
+		}
+		else{
+			var scale = state_layer.aes.fill("value").quantile(['#c6dbef','#9ecae1','#6baed6','#3182bd','#08519c']); //.domain(domain);
+		}
+		
 		map.draw();
 
 		title.text(category_names[category]);
@@ -2967,21 +3013,26 @@ function state_map(container, data){
 			bg_u.exit().remove();
 		var bg_e = bg_u.enter().append("g");
 			bg_e.append("rect").classed("bg-rect",true).attr("fill","transparent").attr("stroke","none").attr("width","100%").attr("height","25");
-			bg_e.append("rect").classed("bar-rect",true).attr("x","2.5%").attr("height","7px").attr("stroke","#aaaaaa").style("shape-rendering","crispEdges");
-			bg_e.append("text").attr("x","2.5%").attr("dy",20).style("font-size","13px").style("cursor","default");
+			bg_e.append("rect").classed("bar-rect",true).attr("x","2.5%").attr("height","7px").style("shape-rendering","crispEdges");
+			bg_e.append("text").attr("x","2.5%").attr("dx",5).attr("dy",20).style("font-size","13px").style("cursor","default");
 
 		var bg = bg_e.merge(bg_u);
 
 		bg.select("rect.bar-rect").transition().duration(1200)
 						.attr("y", function(d,i){return i*30 + 10})
-						.attr("width", function(d,i){return ((d.value/domain[1])*95)+"%" })
+						.attr("width", width)
+						.attr("x", xpos)
 						.attr("fill",function(d){
 							return scale.map(d);
+						})
+						.attr("stroke",function(d){
+							return d3.color(scale.map(d)).darker(0.5);
 						});
 
 		bg.select("rect.bg-rect").transition().duration(1200).attr("y", function(d,i){return i*30 + 10});
 
 		bg.select("text").text(function(d, i){return (i+1) + ". " +  d.usps+ " (" + d.valuef + ")"})
+						 .attr("x", xpos)
 						 .transition().duration(1200).attr("y", function(d,i){return i*30 + 10});
 
 		var timer;
@@ -3001,6 +3052,8 @@ function state_map(container, data){
 				}, 300);
 			});
 
+		yaxis.transition().duration(1200).attr("x1",midpoint+"%").attr("x2",midpoint+"%");
+
 
 		size_bars();
 
@@ -3010,7 +3063,15 @@ function state_map(container, data){
 	var get_draw = function(){
 		var D = data.state[geo].map(function(d){
 			var r = {fips:d.fips, usps:d.state, value: category=="pc" ? d.tot/d.pop : d[category]};
-			r.valuef = category=="pc" ? format.num0(r.value*1000) + " gal./day" : format.num0(r.value) + " Mgal/d";
+			if(category=="pc"){
+				r.valuef = format.num0(r.value*1000) + " gal./day";
+			}
+			else if(category=="ch0510"){
+				r.valuef = format.pct1(r.value);
+			}
+			else{
+				r.valuef = format.num0(r.value) + " Mgal/d";
+			}
 			return r;
 		}).filter(function(d){return d.fips != "US" && d.fips != "11"});
 
@@ -3243,7 +3304,12 @@ function metro_map(container, data){
 						.style("border","1px solid #aaaaaa")
 						.style("border-width","1px 0px")
 						.style("margin-top","4em");
-	var bar_svg = bar_wrap.append("svg").attr("width","100%").attr("height",100*30 + 20);
+
+	var bar_svg_ = bar_wrap.append("svg").attr("width","100%").attr("height",100*30 + 20);
+	var yaxis = bar_svg_.append("line").attr("x1","2.5%").attr("x2","2.5%")
+								       .attr("y1","0%").attr("y2","100%")
+								       .attr("stroke","#aaaaaa").attr("stroke-dasharray","2,2");
+	var bar_svg = bar_svg_.append("g");
 
 
 	var lookup = metro_select().lookup;
@@ -3270,16 +3336,44 @@ function metro_map(container, data){
 			catch(e){
 				precision = "0";
 			}
+			
+			var fmt;
+			var fmtb; //bubble formatter needs +/-
+			var title;
 
-			var fmt = category==="pc" ? function(v){return format.num0(v*1000)} : format["num"+precision];
+			if(category=="pc"){
+				fmt = fmtb = function(v){return format.num0(v*1000)};
+				title = "Gallons per person, per day";
+				var vals = rad.ticks();
+			}
+			else if(category=="ch0510"){
+				fmtb = function(v){return "+/- " + format.sh1(v)};
+				fmt = format.pct1;
+				title = "Percent change, 2005 to 2010";
+				var vals = [{value:0.6}, {value:0.2}, {value:0.025}].map(function(d){
+					d.r = rad.map(d);
+					return d;
+				});
+			}
+			else{
+				fmt = fmtb = format["num"+precision];
+				title = "Millions of gallons per day";
+				var vals = rad.ticks();
+			}
 
 			map.legend.swatch(fill.ticks(), function(v){
-				return fmt(v[0]) + "–" + fmt(v[1]);
-			}, (category=="pc" ? "Thousands of gallons per person, per day" : "Millions of gallons per day"), "left");
-			map.legend.bubble(rad.ticks(), fmt, null, "left");
+				return fmt(v[0]) + " to " + fmt(v[1]);
+			}, title, "left");
+
+
+			map.legend.bubble(vals, fmtb, null, "left");
 			redraw_legend = false; //dots never resize -- so only need to redraw legend when indicator changes
 		}
 	}
+
+	var notes_wrap = wrap.append("div").classed("notes-box",true);
+	notes_wrap.append("p").text("Source: Brookings analysis of U.S. Geological Survey data.");
+	notes_wrap.append("p").text("Note: Data are based on 2010 estimates.");
 
 	var tooltip = function(obs){
 		var tip = d3.select(this); 
@@ -3288,9 +3382,30 @@ function metro_map(container, data){
 
 	var draw = function(data){
 		var domain = d3.extent(metros, function(d){return category=="pc" ? d.tot/d.pop : d[category]});
+		if(domain[0] > 0){
+			domain[0]=0;
+		}
+
+		var xscale = d3.scaleLinear().domain(domain).range([2.5,97.5]);
+		var midpoint = xscale(0);
+		var width = function(d){
+			var x = xscale(d.value);
+			return x >= midpoint ? (x-midpoint)+"%" : (midpoint-x)+"%";
+		};
+		var xpos = function(d){
+			var x = xscale(d.value);
+			return x >= midpoint ? midpoint+"%" : x+"%";
+		};
+
 
 		metro_layer.data(data, "cbsa");
-		var scale = metro_layer.aes.fill("value").quantile(['#c6dbef','#9ecae1','#6baed6','#3182bd','#08519c']); //.quantile(['#eff3ff','#bdd7e7','#6baed6','#3182bd','#08519c']); //.domain(domain);
+		if(category != "ch0510"){
+			var scale = metro_layer.aes.fill("value").quantile(['#c6dbef','#9ecae1','#6baed6','#3182bd','#08519c']); //.quantile(['#eff3ff','#bdd7e7','#6baed6','#3182bd','#08519c']); //.domain(domain);
+		}
+		else{
+			var scale = metro_layer.aes.fill("value").quantize(['#d7191c','#fdae61','#abd9e9','#2c7bb6']); //.domain(domain);
+		}
+
 		var r = metro_layer.aes.r("value");
 		map.draw();
 
@@ -3303,21 +3418,26 @@ function metro_map(container, data){
 			bg_u.exit().remove();
 		var bg_e = bg_u.enter().append("g");
 			bg_e.append("rect").classed("bg-rect",true).attr("fill","transparent").attr("stroke","none").attr("width","100%").attr("height","30");
-			bg_e.append("rect").classed("bar-rect",true).attr("x","2.5%").attr("height","7px").attr("stroke","#aaaaaa").style("shape-rendering","crispEdges");
-			bg_e.append("text").attr("x","2.5%").attr("dy",20).style("font-size","13px").style("cursor","default");
+			bg_e.append("rect").classed("bar-rect",true).attr("x","2.5%").attr("height","7px").style("shape-rendering","crispEdges");
+			bg_e.append("text").attr("x","2.5%").attr("dy",20).attr("dx",5).style("font-size","13px").style("cursor","default");
 
 		var bg = bg_e.merge(bg_u);
 
 		bg.select("rect.bar-rect").transition().duration(1200)
 						.attr("y", function(d,i){return i*30 + 10})
-						.attr("width", function(d,i){return ((d.value/domain[1])*95)+"%" })
+						.attr("width", width)
+						.attr("x", xpos)
 						.attr("fill",function(d){
 							return scale.map(d);
+						})
+						.attr("stroke",function(d){
+							return d3.color(scale.map(d)).darker(0.5);
 						});
 
 		bg.select("rect.bg-rect").transition().duration(1200).attr("y", function(d,i){return i*30 + 10});
 
 		bg.select("text").text(function(d,i){return (i+1) + ". " + lookup(d.cbsa).nameshort + " (" + d.valuef + ")"})
+						 .attr("x",xpos)
 						 .transition().duration(1200).attr("y", function(d,i){return i*30 + 10});
 
 		var timer;
@@ -3337,6 +3457,7 @@ function metro_map(container, data){
 				}, 300);
 			});
 
+		yaxis.transition().duration(1200).attr("x1",midpoint+"%").attr("x2",midpoint+"%");
 
 		size_bars();
 	
@@ -3348,7 +3469,16 @@ function metro_map(container, data){
 	var get_draw = function(){
 		var D = data.metro.map(function(d){
 			var r = {cbsa:d.cbsa, name: lookup(d.cbsa).name, value: category=="pc" ? d.tot/d.pop : d[category]};
-			r.valuef = category=="pc" ? format.num0(r.value*1000) + " gal./day" : format.num0(r.value) + " Mgal/d";
+			if(category=="pc"){
+				r.valuef = format.num0(r.value*1000) + " gal./day";
+			}
+			else if(category=="ch0510"){
+				r.valuef = format.pct1(r.value);
+			}
+			else{
+				r.valuef = format.num0(r.value) + " Mgal/d";
+			}
+
 			return r;
 		});
 
@@ -3772,7 +3902,7 @@ function main(){
         compat.alert(containers.metro_map);
         compat.alert(containers.state_map);
       }
-console.log(data);
+
       metro_map(containers.metro_map, data);
       state_map(containers.state_map, data);
 

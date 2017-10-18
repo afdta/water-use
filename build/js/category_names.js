@@ -1,5 +1,6 @@
 var category_names = {
 	tot: "Total withdrawals (millions of gallons per day, Mgal/d)",
+	ch0510: "Percent change in total withdrawals, 2005 to 2010",
 	pc: "Total withdrawals per capita (gallons per person, per day)",
 	public_supply: "Withdrawals for public supply (Mgal/d)",
 	thermoelectric: "Withdrawals for thermoelectric power (Mgal/d)",
@@ -11,7 +12,7 @@ var category_names = {
 	aquaculture: "Withdrawals for aquaculture (Mgal/d)"
 };
 
-var cat_options = ["tot", "pc", "public_supply", "thermoelectric", "irrigation", 
+var cat_options = ["tot", "ch0510", "pc", "public_supply", "thermoelectric", "irrigation", 
 				   "ind_self_supply", "dom_self_supply", "livestock", "mining", "aquaculture"];
 
 var category_options = cat_options.map(function(d,i){

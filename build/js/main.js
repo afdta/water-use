@@ -33,7 +33,7 @@ function main(){
         compat.alert(containers.metro_map);
         compat.alert(containers.state_map);
       }
-console.log(data);
+
       metro_map(containers.metro_map, data);
       state_map(containers.state_map, data);
 
