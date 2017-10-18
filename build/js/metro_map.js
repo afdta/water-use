@@ -8,7 +8,7 @@ import {category_names as cn, category_options as co} from './category_names.js'
 export default function metro_map(container, data){
 	var wrap = d3.select(container).classed("c-fix",true)
 								   .style("max-width","1600px")
-								   .style("margin","8em auto 6em auto");
+								   .style("margin","2em auto 6em auto");
 
 	var menu = wrap.append("div").classed("c-fix",true);
 
@@ -93,9 +93,17 @@ export default function metro_map(container, data){
 		}
 	}
 
+	wrap.append("p").append("a").classed("jump-link",true)
+						  .style("margin","0rem 1.5rem")
+						  .style("float","right")
+						  .attr("href","#state-map")
+						  .text("Jump to a state-level map of these data »")
+						  ;
+
 	var notes_wrap = wrap.append("div").classed("notes-box",true);
 	notes_wrap.append("p").text("Source: Brookings analysis of U.S. Geological Survey data.");
 	notes_wrap.append("p").text("Note: Data are based on 2010 estimates.");
+	
 
 	var tooltip = function(obs){
 		var tip = d3.select(this); 
